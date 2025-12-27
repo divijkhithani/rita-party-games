@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mom's Rapid Fire Quiz - Pro Version</title>
+    <style>
+        :root {
+            --primary: #ff0055;
+            --secondary: #21d4fd;
+            --bg: #0f0c29;
+            --card: #1b1b2f;
+            --white: #ffffff;
+            --gold: #ffd700;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            color: var(--white);
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .settings-bar {
+            background: rgba(0, 0, 0, 0.7);
+            width: 100%;
+            padding: 12px 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            border-bottom: 2px solid var(--gold);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .settings-bar label { font-size: 0.8rem; color: var(--gold); font-weight: bold; }
+        .settings-bar input { background: #000; color: #fff; border: 1px solid var(--gold); padding: 5px; width: 50px; text-align: center; border-radius: 4px; }
+
+        .container { text-align: center; width: 95%; max-width: 850px; padding: 20px; }
+        
+        h1 { font-size: 2.2rem; margin: 10px 0; color: var(--gold); text-transform: uppercase; letter-spacing: 2px; text-shadow: 2px 2px #000; }
+
+        .scoreboard { display: flex; justify-content: center; gap: 30px; margin-bottom: 20px; }
+        
+        .team-box {
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255,255,255,0.2);
+            padding: 15px 25px;
+            border-radius: 15px;
+            transition: 0.3s;
+            position: relative;
+        }
+        .team-box.active { border-color: var(--secondary); box-shadow: 0 0 20px var(--secondary); background: rgba(33, 212, 253, 0.15); }
+        .score { font-size: 3.5rem; font-weight: bold; display: block; min-width: 80px; }
+
+        /* Manual Adjusters */
+        .adjust-btns { display: flex; justify-content: center; gap: 10px; margin-top: 5px; }
+        .btn-adj { background: rgba(255,255,255,0.1); color: white; border: 1px solid #555; padding: 2px 10px; border-radius: 4px; cursor: pointer; font-size: 1rem; }
+        .btn-adj:hover { background: var(--gold); color: black; }
+
+        #timer-display { font-size: 5.5rem; font-weight: 900; color: var(--primary); margin: 5px 0; text-shadow: 0 0 15px rgba(255,0,85,0.4); }
+
+        .card {
+            background: var(--card);
+            padding: 40px;
+            border-radius: 20px;
+            min-height: 180px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            border: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        #quote-text { font-size: 2rem; font-style: italic; margin-bottom: 15px; line-height: 1.3; }
+        #answer-text { font-size: 1.8rem; color: var(--secondary); font-weight: bold; visibility: hidden; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px; }
+
+        .btn-group { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+        
+        button {
+            padding: 15px 30px;
+            font-size: 1rem;
+            font-weight: bold;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: 0.2s;
+            text-transform: uppercase;
+        }
+
+        .btn-start { background: var(--secondary); color: #000; width: 280px; font-size: 1.3rem; }
+        .btn-correct { background: #28a745; color: white; display: none; }
+        .btn-skip { background: #6c757d; color: white; display: none; }
+        .btn-reveal { background: var(--gold); color: #000; display: none; }
+        
+        .manual-controls {
+            margin-top: 40px;
+            padding: 20px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            width: 100%;
+        }
+        .manual-controls p { font-size: 0.8rem; color: #888; margin-bottom: 15px; letter-spacing: 1px; }
+        .btn-tiny { padding: 8px 15px; font-size: 0.75rem; background: transparent; border: 1px solid #444; color: #888; margin: 2px; border-radius: 5px; }
+        .btn-tiny:hover { background: #444; color: white; }
+        .btn-danger { color: #ff4444; border-color: #ff4444; }
+
+    </style>
+</head>
+<body>
+
+    <div class="settings-bar">
+        <div>
+            <label>ROUND TIME:</label>
+            <input type="number" id="timer-input" value="60" onchange="updateTimerDisplay()">
+        </div>
+        <button class="btn-tiny btn-danger" onclick="resetFullGame()">RESET GAME</button>
+    </div>
+
+    <div class="container">
+        <h1>RAPID FIRE ⚡</h1>
+
+        <div class="scoreboard">
+            <div id="team1-box" class="team-box active">
+                <span style="font-size:0.8rem; font-weight:bold; color:var(--gold)">TEAM 1</span>
+                <span id="score1" class="score">0</span>
+                <div class="adjust-btns">
+                    <button class="btn-adj" onclick="manualScore(1, -1)">-</button>
+                    <button class="btn-adj" onclick="manualScore(1, 1)">+</button>
+                </div>
+            </div>
+            <div id="team2-box" class="team-box">
+                <span style="font-size:0.8rem; font-weight:bold; color:var(--gold)">TEAM 2</span>
+                <span id="score2" class="score">0</span>
+                <div class="adjust-btns">
+                    <button class="btn-adj" onclick="manualScore(2, -1)">-</button>
+                    <button class="btn-adj" onclick="manualScore(2, 1)">+</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="timer-display">60</div>
+
+        <div class="card">
+            <div id="quote-text">Ready for Team <span id="current-team-text">1</span>?</div>
+            <div id="answer-text">MOVIE NAME</div>
+        </div>
+
+        <div class="btn-group">
+            <button id="start-btn" class="btn-start" onclick="startTurn()">Start Turn</button>
+            <button id="reveal-btn" class="btn-reveal" onclick="revealAnswer()">Show Answer</button>
+            <button id="correct-btn" class="btn-correct" onclick="handleCorrect()">Correct (+1)</button>
+            <button id="skip-btn" class="btn-skip" onclick="nextQuestion()">Skip</button>
+        </div>
+
+        <div class="manual-controls">
+            <p>TURN OVERRIDES</p>
+            <button class="btn-tiny" onclick="forceSwitchTeam(1)">Switch to Team 1</button>
+            <button class="btn-tiny" onclick="forceSwitchTeam(2)">Switch to Team 2</button>
+            <button class="btn-tiny" onclick="restartCurrentTurn()">Reset Turn Clock</button>
+        </div>
+    </div>
+
+    <script>
+        const quotes = [
+            {q: "“I feel the need… the need for speed!”", a: "Top Gun"},
+            {q: "“Mogambo khush hua.”", a: "Mr. India"},
+            {q: "“To infinity and beyond!”", a: "Toy Story"},
+            {q: "“Bade bade deshon mein aisi chhoti chhoti baatein hoti rehti hain.”", a: "DDLJ"},
+            {q: "“I see dead people.”", a: "The Sixth Sense"},
+            {q: "“Pushpa, I hate tears.”", a: "Amar Prem"},
+            {q: "“How’s the josh?”", a: "Uri: The Surgical Strike"},
+            {q: "“I’m king of the world!”", a: "Titanic"},
+            {q: "“Picture abhi baaki hai mere dost.”", a: "Om Shanti Om"},
+            {q: "“Nobody puts Baby in a corner.”", a: "Dirty Dancing"},
+            {q: "“Aal izz well.”", a: "3 Idiots"},
+            {q: "“Why so serious?”", a: "The Dark Knight"},
+            {q: "“Beta, tumse na ho payega.”", a: "Gangs of Wasseypur"},
+            {q: "“I’ll be back.”", a: "The Terminator"},
+            {q: "“Don ko pakadna mushkil hi nahi, namumkin hai.”", a: "Don"},
+            {q: "“Main apni favorite hoon.”", a: "Jab We Met"},
+            {q: "“I love the smell of napalm in the morning.”", a: "Apocalypse Now"},
+            {q: "“Mere paas maa hai.”", a: "Deewaar"},
+            {q: "“Life finds a way.”", a: "Jurassic Park"},
+            {q: "“Tension lene ka nahi, sirf dene ka.”", a: "Chhichhore"},
+            {q: "“Just keep swimming.”", a: "Finding Nemo"},
+            {q: "“Babu Moshai, zindagi badi honi chahiye lambi nahi.”", a: "Anand"},
+            {q: "“Say hello to my little friend!”", a: "Scarface"},
+            {q: "“Jaa Simran jaa, jee le apni zindagi.”", a: "DDLJ"},
+            {q: "“I solemnly swear that I am up to no good.”", a: "Harry Potter"},
+            {q: "“Main hoon na.”", a: "Main Hoon Na"},
+            {q: "“You shall not pass!”", a: "The Lord of the Rings"},
+            {q: "“Dosti ka ek usool hai madam – no sorry, no thank you.”", a: "Munnabhai M.B.B.S"},
+            {q: "“Here’s looking at you, kid.”", a: "Casablanca"},
+            {q: "“Thappad se darr nahi lagta sahab, pyaar se lagta hai.”", a: "Thappad"},
+            {q: "“I drink your milkshake!”", a: "There Will Be Blood"},
+            {q: "“Bade aadmi ki chhoti chhoti baatein.”", a: "DDLJ"},
+            {q: "“I feel like I’m taking crazy pills!”", a: "Zoolander"},
+            {q: "“Tera naam kya hai, Basanti?”", a: "Sholay"},
+            {q: "“Frankly, my dear, I don’t give a damn.”", a: "Gone with the Wind"},
+            {q: "“Ek chutki sindoor ki keemat tum kya jaano Ramesh Babu?”", a: "Om Shanti Om"},
+            {q: "“Kutte, main tera khoon pee jaunga!”", a: "Sholay"},
+            {q: "“Why are you so obsessed with me?”", a: "Mean Girls"},
+            {q: "“Hum jahan khade hote hain, line wahi se shuru hoti hai.”", a: "Sholay"},
+            {q: "“I volunteer as tribute!”", a: "The Hunger Games"},
+            {q: "“Main aaj bhi phenke hue paise nahi uthata.”", a: "Deewaar"},
+            {q: "“Shaken, not stirred.”", a: "James Bond"},
+            {q: "“I am Groot.”", a: "Guardians of the Galaxy"},
+            {q: "“Bhai ne bola karne ka matlab karne ka.”", a: "Munna Bhai M.B.B.S"},
+            {q: "“Here’s Johnny!”", a: "The Shining"}
+        ];
+
+        let shuffled = [];
+        let currentIndex = 0;
+        let activeTeam = 1;
+        let scores = [0, 0];
+        let timer;
+        let timeLeft = 60;
+        let isGameRunning = false;
+
+        function updateTimerDisplay() {
+            if(!isGameRunning) {
+                timeLeft = parseInt(document.getElementById('timer-input').value);
+                document.getElementById('timer-display').innerText = timeLeft;
+            }
+        }
+
+        function manualScore(team, val) {
+            scores[team-1] += val;
+            if(scores[team-1] < 0) scores[team-1] = 0;
+            document.getElementById(`score${team}`).innerText = scores[team-1];
+        }
+
+        function startTurn() {
+            if (isGameRunning) return;
+            shuffled = [...quotes].sort(() => Math.random() - 0.5);
+            currentIndex = 0;
+            timeLeft = parseInt(document.getElementById('timer-input').value);
+            isGameRunning = true;
+            
+            document.getElementById('start-btn').style.display = 'none';
+            document.getElementById('reveal-btn').style.display = 'inline-block';
+            document.getElementById('correct-btn').style.display = 'inline-block';
+            document.getElementById('skip-btn').style.display = 'inline-block';
+            
+            nextQuestion();
+            timer = setInterval(() => {
+                timeLeft--;
+                document.getElementById('timer-display').innerText = timeLeft;
+                if (timeLeft <= 0) endTurn();
+            }, 1000);
+        }
+
+        function forceSwitchTeam(n) {
+            clearInterval(timer);
+            isGameRunning = false;
+            activeTeam = n;
+            document.getElementById('team1-box').className = n === 1 ? 'team-box active' : 'team-box';
+            document.getElementById('team2-box').className = n === 2 ? 'team-box active' : 'team-box';
+            document.getElementById('current-team-text').innerText = n;
+            resetUI();
+        }
+
+        function restartCurrentTurn() {
+            clearInterval(timer);
+            isGameRunning = false;
+            resetUI();
+        }
+
+        function resetUI() {
+            document.getElementById('start-btn').style.display = 'inline-block';
+            document.getElementById('reveal-btn').style.display = 'none';
+            document.getElementById('correct-btn').style.display = 'none';
+            document.getElementById('skip-btn').style.display = 'none';
+            document.getElementById('quote-text').innerText = `Ready for Team ${activeTeam}?`;
+            document.getElementById('answer-text').style.visibility = 'hidden';
+            updateTimerDisplay();
+        }
+
+        function nextQuestion() {
+            document.getElementById('answer-text').style.visibility = 'hidden';
+            if (currentIndex >= shuffled.length) {
+                shuffled = [...quotes].sort(() => Math.random() - 0.5);
+                currentIndex = 0;
+            }
+            document.getElementById('quote-text').innerText = shuffled[currentIndex].q;
+            document.getElementById('answer-text').innerText = shuffled[currentIndex].a;
+            currentIndex++;
+        }
+
+        function revealAnswer() { document.getElementById('answer-text').style.visibility = 'visible'; }
+
+        function handleCorrect() {
+            manualScore(activeTeam, 1);
+            nextQuestion();
+        }
+
+        function endTurn() {
+            clearInterval(timer);
+            isGameRunning = false;
+            alert(`Time's up Team ${activeTeam}!`);
+            forceSwitchTeam(activeTeam === 1 ? 2 : 1);
+        }
+
+        function resetFullGame() {
+            if(confirm("Wipe all scores and reset?")) {
+                scores = [0, 0];
+                document.getElementById('score1').innerText = "0";
+                document.getElementById('score2').innerText = "0";
+                forceSwitchTeam(1);
+            }
+        }
+    </script>
+</body>
+</html>
